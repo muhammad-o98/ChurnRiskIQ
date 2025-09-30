@@ -1,0 +1,315 @@
+project:
+  name: telecom-churn
+  random_state: 42
+  output_dir: artifacts
+
+data:
+  path: data/churndata.csv
+  target: Churn
+  test_size: 0.2
+  stratify: true
+  positive_label: 1
+
+preprocessing:
+  enable_feature_engineering: true
+  power_transform_numeric: true
+  power_transform_features: ["tenure", "MonthlyCharges", "TotalCharges", "NumServices", "AvgCharge"]
+  categorical_features: ["gender", "InternetService", "PaymentMethod", "tenure_group"]
+  numerical_features: []
+  impute_categorical: most_frequent
+  impute_numeric: null
+  onehot_sparse_output: false
+  onehot_drop_first: true
+
+models:
+  base_models:
+    # Decision Trees
+    decision_tree_gini:
+      params:
+        class_weight: balanced
+        criterion: gini
+        max_depth: 6
+        min_samples_split: 100
+        min_samples_leaf: 50
+        max_features: sqrt
+        random_state: 42
+    decision_tree_entropy:
+      params:
+        class_weight: balanced
+        criterion: entropy
+        max_depth: 6
+        min_samples_split: 100
+        min_samples_leaf: 50
+        max_features: sqrt
+        random_state: 42
+
+    # Random Forest
+    rf_basic:
+      params:
+        criterion: entropy
+        n_estimators: 20000
+        max_depth: 15
+        min_samples_split: 100
+        min_samples_leaf: 10
+        max_features: sqrt
+        bootstrap: true
+        oob_score: true
+        random_state: 42
+        n_jobs: -1
+    rf_balanced:
+      params:
+        class_weight: balanced
+        criterion: entropy
+        n_estimators: 20000
+        max_depth: 25
+        min_samples_split: 50
+        min_samples_leaf: 5
+        max_features: sqrt
+        bootstrap: true
+        oob_score: true
+        random_state: 42
+        n_jobs: -1
+
+    # Gradient Boosting
+    gb_basic:
+      params:
+        loss: log_loss
+        learning_rate: 0.1
+        n_estimators: 2000
+        subsample: 0.8
+        criterion: friedman_mse
+        min_samples_split: 200
+        min_samples_leaf: 50
+        max_depth: 5
+        max_features: null
+        validation_fraction: 0.1
+        n_iter_no_change: null
+        tol: 0.0001
+        ccp_alpha: 0.0
+        random_state: 42
+    gb_tuned:
+      params:
+        loss: log_loss
+        learning_rate: 0.01
+        n_estimators: 20000
+        criterion: friedman_mse
+        min_samples_split: 100
+        min_samples_leaf: 50
+        max_depth: 20
+        max_features: sqrt
+        validation_fraction: 0.1
+        n_iter_no_change: 1000
+        tol: 0.0001
+        ccp_alpha: 0.0
+        random_state: 42
+
+    # XGBoost
+    xgb_basic:
+      params:
+        objective: binary:logistic
+        n_estimators: 1000
+        learning_rate: 0.1
+        max_depth: 3
+        subsample: 0.8
+        colsample_bytree: 0.8
+        use_label_encoder: false
+        eval_metric: logloss
+        random_state: 42
+        n_jobs: -1
+    xgb_tuned:
+      params:
+        objective: binary:logistic
+        n_estimators: 5000
+        learning_rate: 0.075
+        max_depth: 4
+        min_child_weight: 10
+        subsample: 0.7
+        colsample_bytree: 0.7
+        gamma: 1.0
+        reg_alpha: 0.1
+        reg_lambda: 1.0
+        use_label_encoder: false
+        eval_metric: logloss
+        random_state: 42
+        n_jobs: -1
+
+    # LightGBM
+    lgbm_basic:
+      params:
+        objective: binary
+        n_estimators: 1000
+        learning_rate: 0.1
+        max_depth: 25
+        num_leaves: 7
+        subsample: 0.8
+        colsample_bytree: 0.8
+        random_state: 42
+        n_jobs: -1
+    lgbm_tuned:
+      params:
+        objective: binary
+        n_estimators: 10000
+        learning_rate: 0.075
+        max_depth: 25
+        num_leaves: 31
+        min_child_samples: 50
+        min_split_gain: 0.01
+        subsample: 0.7
+        colsample_bytree: 0.7
+        reg_alpha: 0.1
+        reg_lambda: 1.0
+        random_state: 42
+        n_jobs: -1
+
+    # CatBoost
+    cat_basic:
+      params:
+        iterations: 1000
+        learning_rate: 0.1
+        depth: 3
+        loss_function: Logloss
+        verbose: 0
+        random_seed: 42
+    cat_tuned:
+      params:
+        iterations: 1000
+        learning_rate: 0.01
+        depth: 12
+        l2_leaf_reg: 3.0
+        random_strength: 1.0
+        border_count: 128
+        loss_function: Logloss
+        eval_metric: Logloss
+        bagging_temperature: 1.0
+        verbose: 0
+        random_seed: 42
+
+    # SVC
+    svc:
+      params:
+        kernel: rbf
+        probability: true
+        class_weight: balanced
+        C: 1.0
+        gamma: scale
+
+training:
+  cross_validation:
+    cv: 5
+    scoring: ["roc_auc", "accuracy", "f1"]
+    n_jobs: -1
+
+tuning:
+  enabled: true
+  strategy: grid   # grid or random
+  random_n_iter: 50
+  param_grids:
+    # Decision Trees
+    decision_tree_gini:
+      criterion: ["gini"]
+      max_depth: [4, 6, 10]
+      min_samples_split: [10, 50, 100, 200]
+      min_samples_leaf: [10, 20, 50]
+      max_features: ["sqrt", null]
+      class_weight: [null, "balanced"]
+    decision_tree_entropy:
+      criterion: ["entropy"]
+      max_depth: [4, 6, 10]
+      min_samples_split: [10, 50, 100, 200]
+      min_samples_leaf: [10, 20, 50]
+      max_features: ["sqrt", null]
+      class_weight: [null, "balanced"]
+
+    # Random Forest
+    rf_basic:
+      n_estimators: [1000, 5000, 10000]
+      max_depth: [10, 15, 20, 25]
+      min_samples_split: [10, 50, 100, 200]
+      min_samples_leaf: [10, 20, 50]
+      max_features: ["sqrt"]
+      bootstrap: [true]
+      oob_score: [true]
+      criterion: ["gini", "entropy"]
+    rf_balanced:
+      n_estimators: [1000, 5000, 10000]
+      max_depth: [5, 7, 10, 15, 25]
+      min_samples_split: [10, 50, 100]
+      min_samples_leaf: [5, 10]
+      max_features: ["sqrt"]
+      bootstrap: [true]
+      oob_score: [true]
+      criterion: ["entropy"]
+      class_weight: ["balanced"]
+
+    # Gradient Boosting
+    gb_basic:
+      n_estimators: [2000, 5000, 10000]
+      learning_rate: [0.03, 0.1]
+      max_depth: [3, 4, 5, 7, 10, 15, 20, 25]
+      subsample: [0.8]
+      min_samples_split: [10, 50, 100, 200]
+      min_samples_leaf: [10, 20, 50]
+    gb_tuned:
+      n_estimators: [2000, 5000, 10000]
+      learning_rate: [0.1, 0.05, 0.01]
+      max_depth: [10, 25]
+      max_features: ["sqrt"]
+      min_samples_split: [10, 50, 100, 200]
+      min_samples_leaf: [10, 20, 50]
+      validation_fraction: [0.1]
+      n_iter_no_change: [10]
+
+    # XGBoost
+    xgb_basic:
+      n_estimators: [1000, 3000, 5000, 10000]
+      learning_rate: [0.03, 0.1]
+      max_depth: [3, 4, 5, 7, 10, 15, 20, 25]
+      subsample: [0.8]
+      colsample_bytree: [0.8]
+    xgb_tuned:
+      n_estimators: [3000, 5000]
+      learning_rate: [0.1, 0.05, 0.01]
+      max_depth: [5, 7, 10, 15, 20]
+      subsample: [0.7, 0.9]
+      colsample_bytree: [0.7, 0.9]
+      gamma: [0, 0.5, 1.0]
+      reg_alpha: [0.1, 0.5]
+      reg_lambda: [1.0]
+
+    # LightGBM
+    lgbm_basic:
+      n_estimators: [1000, 3000, 5000, 10000]
+      learning_rate: [0.03, 0.1]
+      max_depth: [3, 5]
+      num_leaves: [7, 15]
+      subsample: [0.8]
+      colsample_bytree: [0.8]
+    lgbm_tuned:
+      n_estimators: [1000, 5000, 10000]
+      learning_rate: [0.1, 0.05, 0.01]
+      max_depth: [6]
+      num_leaves: [31]
+      min_child_samples: [20, 50]
+      min_split_gain: [0.01]
+      subsample: [0.7]
+      colsample_bytree: [0.7]
+      reg_alpha: [0.1]
+      reg_lambda: [1.0]
+
+    # CatBoost
+    cat_basic:
+      iterations: [100, 500, 1000, 3000]
+      learning_rate: [0.03, 0.1]
+      depth: [3, 5, 7, 10]
+      l2_leaf_reg: [1, 3, 5]
+    cat_tuned:
+      iterations: [100, 500]
+      learning_rate: [0.1, 0.05, 0.01]
+      depth: [10, 12, 15]
+      l2_leaf_reg: [3.0]
+      bagging_temperature: [0.5, 1.0]
+      random_strength: [1.0]
+
+ensemble:
+  enabled: true
+  voting: soft
