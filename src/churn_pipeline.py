@@ -29,9 +29,13 @@ except Exception:  # pragma: no cover
 
 from data_preprocessing import prepare_data, setup_logger as setup_pp_logger
 from model_training import train_with_cv, save_model_artifacts, build_pipeline, setup_logger as setup_train_logger
-from model_evaluation import evaluate_classifier_full, setup_logger as setup_eval_logger
+from model_evaluation import evaluate_classifier, setup_logger as setup_eval_logger
 from hyperparameter_tuning import run_grid_search, run_random_search, setup_logger as setup_tune_logger
-from model_ensembling import evaluate_soft_voting, setup_logger as setup_ens_logger
+from model_ensembling import (
+    evaluate_soft_voting,
+    setup_logger as setup_ens_logger,
+    SoftVotingEnsemblePredictor,
+)
 
 
 def ensure_dir(path: str) -> None:
@@ -251,7 +255,7 @@ def main(
             logger.info(f"==== Evaluating model: {model_key} ====")
             t0 = time.time()
             model_dir = os.path.join(models_root, model_key)
-            metrics = evaluate_classifier_full(
+            metrics = evaluate_classifier(
                 model_name=model_key,
                 model=model,
                 X_test=X_test_raw,
@@ -276,6 +280,7 @@ def main(
         if ensemble_cfg.get("enabled", True) and len(trained_models) >= 2:
             logger.info("==== Evaluating soft voting ensemble ====")
             ens_dir = os.path.join(models_root, "soft_voting")
+            ensure_dir(ens_dir)
             ens_metrics = evaluate_soft_voting(
                 models=trained_models,
                 X_test=X_test_raw,
@@ -285,8 +290,12 @@ def main(
                 pos_label=pos_label,
                 logger=setup_ens_logger("ensemble"),
             )
-            ens_row = {"model": "soft_voting"}
-            ens_row.update(ens_metrics)
+            # Save a savable ensemble
+            model_paths = {k: os.path.join(models_root, k, "model.joblib") for k in trained_models.keys()}
+            from joblib import dump
+            dump(SoftVotingEnsemblePredictor(model_paths=model_paths), os.path.join(ens_dir, "model.joblib"))
+
+            ens_row = {"model": "soft_voting"}; ens_row.update(ens_metrics)
             summary_rows.append(ens_row)
 
         summary_path = os.path.join(reports_dir, "summary_metrics.json")

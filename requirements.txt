@@ -9,3 +9,4 @@ xgboost>=1.7
 lightgbm>=4.0
 catboost>=1.2
 tqdm>=4.66
+shap>=0.41
