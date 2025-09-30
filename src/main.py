@@ -8,9 +8,6 @@ Modes:
 - full: end-to-end honoring config (including tuning strategy)
 - eval-pick: evaluate all saved models, then pick best
 - custom: user-specified stages and/or model subset
-
-Stages (custom mode):
-- prep (implicit), tune, train, eval, pick
 """
 import os
 import sys
@@ -26,15 +23,17 @@ SRC_DIR = os.path.dirname(os.path.abspath(__file__))
 if SRC_DIR not in sys.path:
     sys.path.insert(0, SRC_DIR)
 
+# Import churn_pipeline in a way that works for both run styles
 try:
-    # After sys.path injection, local modules (same folder) import as top-level
     import churn_pipeline as cp
-except Exception as e:
-    # Final fallback: try package-style import if user runs "python -m src.main"
+except Exception as e1:
     try:
         import src.churn_pipeline as cp
     except Exception as e2:
-        print(f"Error importing churn_pipeline: {e2}")
+        print("Error importing churn_pipeline:")
+        print(f" - First attempt (churn_pipeline): {repr(e1)}")
+        print(f" - Fallback (src.churn_pipeline): {repr(e2)}")
+        print("Make sure you run from the repo root. Try: python -m src.main --mode quick")
         sys.exit(1)
 
 
@@ -46,7 +45,7 @@ def _all_model_keys(config_path: str) -> List[str]:
 
 
 def run_quick(config_path: str, metric: str):
-    # All models, no tuning
+    # All models, no tuning. Train already evaluates; avoid duplicate eval.
     models = _all_model_keys(config_path)
     cp.main(config_path, "train", metric, models, tune_strategy="grid", random_iter=50)
     cp.main(config_path, "pick-best", metric, models, tune_strategy="grid", random_iter=50)
@@ -159,7 +158,6 @@ def predict_with_best(config_path: str, data_csv: str, model_name: Optional[str]
     if y_proba is not None:
         y_pred = (y_proba >= float(threshold)).astype(int)
 
-    # Save predictions
     out_dir = os.path.join(artifacts, "predictions")
     os.makedirs(out_dir, exist_ok=True)
     out_csv = os.path.join(out_dir, f"preds_{int(time.time())}.csv")

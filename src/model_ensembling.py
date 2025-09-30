@@ -1,7 +1,7 @@
 import os
 import json
 import logging
-from typing import Dict, Any
+from typing import Dict, Any, Optional
 
 import numpy as np
 from sklearn.metrics import roc_auc_score, accuracy_score, f1_score, precision_score, recall_score
@@ -66,3 +66,41 @@ def evaluate_soft_voting(
     if logger:
         logger.info(f"[{ensemble_name}] Test metrics: {metrics}")
     return metrics
+
+
+class SoftVotingEnsemblePredictor:
+    """
+    Savable soft-voting predictor that averages probabilities from saved model pipelines.
+    Each member is a fitted pipeline accepting raw DataFrames.
+    """
+    def __init__(self, model_paths: Dict[str, str], threshold: float = 0.5):
+        self.model_paths = model_paths
+        self.threshold = threshold
+        self._models: Optional[Dict[str, Any]] = None
+
+    def _load_models(self):
+        if self._models is None:
+            import joblib
+            self._models = {}
+            for name, path in self.model_paths.items():
+                self._models[name] = joblib.load(path)
+
+    def predict_proba(self, X):
+        self._load_models()
+        models = self._models or {}
+        probas = []
+        for name, model in models.items():
+            if hasattr(model, "predict_proba"):
+                probas.append(model.predict_proba(X)[:, 1])
+            elif hasattr(model, "decision_function"):
+                z = model.decision_function(X)
+                z_min, z_max = np.min(z), np.max(z)
+                p = (z - z_min) / (z_max - z_min) if z_max > z_min else np.zeros_like(z)
+                probas.append(p)
+            else:
+                probas.append(model.predict(X).astype(float))
+        return np.mean(np.column_stack(probas), axis=1)
+
+    def predict(self, X):
+        p = self.predict_proba(X)
+        return (p >= float(self.threshold)).astype(int)
