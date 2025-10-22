@@ -13,8 +13,10 @@ import sys
 sys.path.append('..')
 
 from utils.session_state import init_session_state
+from utils.ui import apply_theme
 
 init_session_state()
+apply_theme()
 
 st.markdown('<h1 style="color: #1E3A8A;">⚠️ Customer Risk Segmentation</h1>', unsafe_allow_html=True)
 

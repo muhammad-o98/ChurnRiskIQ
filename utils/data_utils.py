@@ -2,6 +2,7 @@
 Data processing utilities for the Streamlit app
 """
 
+from pathlib import Path
 import pandas as pd
 import numpy as np
 from sklearn.model_selection import train_test_split
@@ -158,3 +159,31 @@ def get_feature_names_from_preprocessor(preprocessor, X_train):
     
     feature_names = cat_feature_names + numeric_features + boolean_cols
     return feature_names
+
+
+# ---------- Path helpers & sample data loaders ----------
+def get_project_root() -> Path:
+    """Return absolute Path to the project root folder.
+
+    utils/ lives directly under the project root, so parent of this file's dir is root.
+    """
+    return Path(__file__).resolve().parents[1]
+
+
+def get_data_path(*parts: str) -> Path:
+    """Build an absolute path under the project's data/ directory.
+
+    Example: get_data_path('churndata.csv') -> <root>/data/churndata.csv
+    """
+    return get_project_root() / 'data' / Path(*parts)
+
+
+def load_sample_dataset(filename: str = 'churndata.csv') -> pd.DataFrame:
+    """Load a sample dataset from the data/ directory with robust path resolution.
+
+    Raises FileNotFoundError with a friendly message if the file is missing.
+    """
+    file_path = get_data_path(filename)
+    if not file_path.exists():
+        raise FileNotFoundError(f"Sample dataset not found at {file_path}")
+    return pd.read_csv(file_path)

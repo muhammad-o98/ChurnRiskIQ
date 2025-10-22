@@ -14,10 +14,12 @@ import sys
 sys.path.append('..')
 
 from utils.session_state import init_session_state, save_data
-from utils.data_utils import preprocess_data, engineer_features, split_data
+from utils.data_utils import preprocess_data, engineer_features, split_data, load_sample_dataset
+from utils.ui import apply_theme
 
 # Initialize session state
 init_session_state()
+apply_theme()
 
 st.markdown('<h1 style="color: #1E3A8A;">📤 Data Upload & Preprocessing</h1>', unsafe_allow_html=True)
 
@@ -59,7 +61,7 @@ if uploaded_file is not None:
 
 elif use_sample:
     try:
-        data = pd.read_csv('../data/churndata.csv')
+        data = load_sample_dataset()
         st.success(f"✅ Sample dataset loaded! {data.shape[0]} rows and {data.shape[1]} columns")
     except Exception as e:
         st.error(f"❌ Error loading sample dataset: {str(e)}")
@@ -108,6 +110,9 @@ if data is not None:
             st.session_state.y_train = y_train
             st.session_state.y_test = y_test
             st.session_state.data_uploaded = True
+            # Backward-compatible flags/objects for other pages
+            st.session_state.data_loaded = True
+            st.session_state.df = processed.copy()
             
             st.success("✅ Data preprocessed successfully!")
             st.balloons()

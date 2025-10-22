@@ -5,6 +5,7 @@ Complete end-to-end machine learning app with SHAP analysis and risk segmentatio
 
 import streamlit as st
 from pathlib import Path
+from utils.ui import apply_theme, header
 
 # Page configuration
 st.set_page_config(
@@ -15,74 +16,10 @@ st.set_page_config(
 )
 
 # Custom CSS for modern look
-st.markdown("""
-<style>
-    .main-header {
-        font-size: 3rem;
-        font-weight: 700;
-        color: #1E3A8A;
-        text-align: center;
-        padding: 1rem 0;
-        margin-bottom: 2rem;
-    }
-    .sub-header {
-        font-size: 1.5rem;
-        font-weight: 600;
-        color: #2563EB;
-        margin: 1.5rem 0 1rem 0;
-    }
-    .metric-card {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        padding: 1.5rem;
-        border-radius: 10px;
-        color: white;
-        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-    }
-    .info-box {
-        background-color: #EFF6FF;
-        border-left: 4px solid #3B82F6;
-        padding: 1rem;
-        border-radius: 5px;
-        margin: 1rem 0;
-    }
-    .warning-box {
-        background-color: #FEF3C7;
-        border-left: 4px solid #F59E0B;
-        padding: 1rem;
-        border-radius: 5px;
-        margin: 1rem 0;
-    }
-    .success-box {
-        background-color: #D1FAE5;
-        border-left: 4px solid #10B981;
-        padding: 1rem;
-        border-radius: 5px;
-        margin: 1rem 0;
-    }
-    div[data-testid="stSidebar"] {
-        background: linear-gradient(180deg, #1E3A8A 0%, #3B82F6 100%);
-    }
-    div[data-testid="stSidebar"] .css-1d391kg {
-        color: white;
-    }
-    .stButton>button {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        color: white;
-        border: none;
-        border-radius: 5px;
-        padding: 0.5rem 2rem;
-        font-weight: 600;
-        transition: transform 0.2s;
-    }
-    .stButton>button:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-    }
-</style>
-""", unsafe_allow_html=True)
+apply_theme()
 
 # Main page content
-st.markdown('<h1 class="main-header">📊 Telecom Churn Analytics Platform</h1>', unsafe_allow_html=True)
+header("Telecom Churn Analytics Platform", "📊")
 
 st.markdown("""
 <div class="info-box">

@@ -11,15 +11,17 @@ sys.path.append('..')
 
 st.set_page_config(page_title="Dashboard", page_icon="📊", layout="wide")
 
-from utils.session_state import init_session_state
+from utils.session_state import init_session_state, has_data
+from utils.ui import apply_theme
 
 init_session_state()
+apply_theme()
 
 st.markdown('<h1 style="color: #1E3A8A;">📊 Executive Dashboard</h1>', unsafe_allow_html=True)
 
-# Check prerequisites
-if not st.session_state.get('data_loaded', False):
-    st.warning("⚠️ Please upload data first!")
+# Check prerequisites (robust to older/newer keys)
+if not has_data():
+    st.warning("⚠️ Please upload and preprocess data first on the Data Upload page!")
     st.stop()
 
 # Overview section
@@ -27,11 +29,11 @@ st.markdown("## 📋 Project Overview")
 col1, col2, col3, col4 = st.columns(4)
 
 with col1:
-    total = len(st.session_state.get('df', pd.DataFrame()))
+    total = len(st.session_state.get('data_processed', pd.DataFrame()))
     st.metric("Total Customers", f"{total:,}" if total > 0 else "No data")
 
 with col2:
-    df = st.session_state.get('df')
+    df = st.session_state.get('data_processed')
     if df is not None and 'Churn' in df.columns:
         churn_rate = df['Churn'].mean() * 100
         st.metric("Overall Churn Rate", f"{churn_rate:.1f}%")
@@ -191,37 +193,38 @@ if shap_values is not None:
     import shap
     import numpy as np
     
-    X_display = st.session_state.get('X_display')
-    
-    if X_display is not None:
-        # Calculate mean absolute SHAP values
-        if isinstance(shap_values, list):
-            shap_abs = np.abs(shap_values[1])
-        else:
-            shap_abs = np.abs(shap_values)
-        
-        feature_importance = pd.DataFrame({
-            'Feature': X_display.columns,
-            'Importance': shap_abs.mean(axis=0)
-        }).sort_values('Importance', ascending=False).head(10)
-        
-        fig = px.bar(
-            feature_importance,
-            x='Importance',
-            y='Feature',
-            orientation='h',
-            title='Top 10 Churn Drivers',
-            color='Importance',
-            color_continuous_scale='Reds'
-        )
-        fig.update_layout(yaxis={'categoryorder': 'total ascending'})
-        st.plotly_chart(fig, width="stretch")
+    # Calculate mean absolute SHAP values with feature names from session
+    feature_names = st.session_state.get('shap_feature_names')
+    if feature_names is None:
+        feature_names = [f'f{i}' for i in range(np.array(shap_values[1] if isinstance(shap_values, list) else shap_values).shape[1])]
+
+    if isinstance(shap_values, list):
+        shap_abs = np.abs(shap_values[1])
+    else:
+        shap_abs = np.abs(shap_values)
+
+    feature_importance = pd.DataFrame({
+        'Feature': feature_names,
+        'Importance': shap_abs.mean(axis=0)
+    }).sort_values('Importance', ascending=False).head(10)
+
+    fig = px.bar(
+        feature_importance,
+        x='Importance',
+        y='Feature',
+        orientation='h',
+        title='Top 10 Churn Drivers',
+        color='Importance',
+        color_continuous_scale='Reds'
+    )
+    fig.update_layout(yaxis={'categoryorder': 'total ascending'})
+    st.plotly_chart(fig, width="stretch")
 
 # Executive Summary
 st.markdown("---")
 st.markdown("## 📝 Executive Summary")
 
-df = st.session_state.get('df')
+df = st.session_state.get('data_processed')
 best_model_name = st.session_state.get('best_model_name')
 comparison_df = st.session_state.get('comparison_df')
 

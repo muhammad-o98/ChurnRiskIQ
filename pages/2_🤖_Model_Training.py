@@ -15,6 +15,7 @@ sys.path.append('..')
 
 from utils.session_state import init_session_state, save_model, save_best_model
 from utils.data_utils import get_preprocessor
+from utils.ui import apply_theme
 from utils.model_utils import (
     get_model_registry, train_model, evaluate_model, 
     compare_models, get_best_model
@@ -22,6 +23,7 @@ from utils.model_utils import (
 
 # Initialize
 init_session_state()
+apply_theme()
 
 st.markdown('<h1 style="color: #1E3A8A;">🤖 Model Training & Evaluation</h1>', unsafe_allow_html=True)
 
@@ -128,6 +130,7 @@ if st.session_state.models_trained and st.session_state.model_metrics is not Non
     
     # Create comparison DataFrame
     comparison_df = compare_models(st.session_state.model_metrics)
+    st.session_state.comparison_df = comparison_df.copy()
     
     # Format for display
     display_df = comparison_df.copy()
