@@ -13,7 +13,7 @@ import sys
 sys.path.append('..')
 
 from utils.session_state import init_session_state
-from utils.ui import apply_theme
+from utils.ui import apply_theme, header
 from analysis.risk_segmentation import (
     segment_by_probability,
     summarize_segments,
@@ -23,7 +23,7 @@ from analysis.risk_segmentation import (
 init_session_state()
 apply_theme()
 
-st.markdown('<h1 style="color: #1E3A8A;">⚠️ Customer Risk Segmentation</h1>', unsafe_allow_html=True)
+header("Customer Risk Segmentation", "⚠️")
 
 # Check prerequisites
 if not st.session_state.get('models_trained', False) or st.session_state.get('best_model') is None:

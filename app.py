@@ -32,44 +32,56 @@ st.markdown("""
 st.sidebar.title("🧭 Navigation")
 st.sidebar.markdown("---")
 
-# Feature highlights
+# Feature highlights (flat, light cards)
 col1, col2, col3, col4 = st.columns(4)
 
 with col1:
-    st.markdown("""
-    <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 1.5rem; border-radius: 10px; color: white; text-align: center;">
-        <h2 style="margin: 0; font-size: 2.5rem;">📈</h2>
-        <h4>Dashboard</h4>
-        <p style="font-size: 0.9rem;">Key metrics & insights</p>
-    </div>
-    """, unsafe_allow_html=True)
+    st.markdown(
+        """
+        <div class="card" style="text-align: center;">
+            <div style="font-size: 2rem;">📈</div>
+            <h4 style="margin: 0.2rem 0 0.2rem 0;">Dashboard</h4>
+            <p class="muted" style="margin: 0; font-size: 0.9rem;">Key metrics & insights</p>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
 
 with col2:
-    st.markdown("""
-    <div style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); padding: 1.5rem; border-radius: 10px; color: white; text-align: center;">
-        <h2 style="margin: 0; font-size: 2.5rem;">🤖</h2>
-        <h4>Model Training</h4>
-        <p style="font-size: 0.9rem;">Train & evaluate models</p>
-    </div>
-    """, unsafe_allow_html=True)
+    st.markdown(
+        """
+        <div class="card" style="text-align: center;">
+            <div style="font-size: 2rem;">🤖</div>
+            <h4 style="margin: 0.2rem 0 0.2rem 0;">Model Training</h4>
+            <p class="muted" style="margin: 0; font-size: 0.9rem;">Train & evaluate models</p>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
 
 with col3:
-    st.markdown("""
-    <div style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); padding: 1.5rem; border-radius: 10px; color: white; text-align: center;">
-        <h2 style="margin: 0; font-size: 2.5rem;">🔍</h2>
-        <h4>SHAP Analysis</h4>
-        <p style="font-size: 0.9rem;">Feature importance</p>
-    </div>
-    """, unsafe_allow_html=True)
+    st.markdown(
+        """
+        <div class="card" style="text-align: center;">
+            <div style="font-size: 2rem;">🔍</div>
+            <h4 style="margin: 0.2rem 0 0.2rem 0;">SHAP Analysis</h4>
+            <p class="muted" style="margin: 0; font-size: 0.9rem;">Feature importance</p>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
 
 with col4:
-    st.markdown("""
-    <div style="background: linear-gradient(135deg, #fa709a 0%, #fee140 100%); padding: 1.5rem; border-radius: 10px; color: white; text-align: center;">
-        <h2 style="margin: 0; font-size: 2.5rem;">⚠️</h2>
-        <h4>Risk Segments</h4>
-        <p style="font-size: 0.9rem;">Customer segmentation</p>
-    </div>
-    """, unsafe_allow_html=True)
+    st.markdown(
+        """
+        <div class="card" style="text-align: center;">
+            <div style="font-size: 2rem;">⚠️</div>
+            <h4 style="margin: 0.2rem 0 0.2rem 0;">Risk Segments</h4>
+            <p class="muted" style="margin: 0; font-size: 0.9rem;">Customer segmentation</p>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
 
 st.markdown("---")
 

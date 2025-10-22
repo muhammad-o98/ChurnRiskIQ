@@ -10,13 +10,13 @@ sys.path.append('..')
 from utils.session_state import init_session_state
 from utils.cache_manager import set_pref, get_pref
 from models.persistence import latest_best_model
-from utils.ui import apply_theme
+from utils.ui import apply_theme, header
 
 st.set_page_config(page_title="Settings", page_icon="⚙️", layout="wide")
 init_session_state()
 apply_theme()
 
-st.markdown('<h1 style="color: #1E3A8A;">⚙️ Settings</h1>', unsafe_allow_html=True)
+header("Settings", "⚙️")
 
 # Preferences
 st.markdown("### User Preferences")
