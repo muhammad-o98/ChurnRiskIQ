@@ -1,27 +1,109 @@
-# Telecom Churn – Full-Scale Config-Driven ML Pipeline
+# Telecom Churn Prediction - Complete ML & Analytics Platform
 
-Production-style, config-driven pipeline for Telco churn:
-- Models: Decision Trees (gini/entropy), Random Forest (basic/balanced), Gradient Boosting (basic/tuned), XGBoost (basic/tuned), LightGBM (basic/tuned), CatBoost (basic/tuned), plus SVC
-- Feature engineering aligned to your notebook (tenure_group, LongTerm, service normalization, AvgCharge, optional Yeo–Johnson)
-- Cross-validated training, grid/randomized hyperparameter tuning
-- Per-model metrics and plots, soft-voting ensemble saved as a model
-- Best-model selection and copy to artifacts/models/best/
-- Explainability: tree visualization, SHAP (tree models), threshold insights, probability diagnostics
+An end-to-end machine learning platform for telecom customer churn prediction, featuring:
+- **Interactive Streamlit Web Application** with modern UI/UX
+- **6 ML Models**: Decision Tree, Random Forest, Gradient Boosting, XGBoost, LightGBM, CatBoost
+- **SHAP Analysis** for model explainability
+- **Risk Segmentation** with retention strategies
+- **Executive Dashboard** with KPIs and insights
 
-## Install
+---
+
+## 🚀 Quick Start
+
+### 1. Install Dependencies
 ```bash
 pip install -r requirements.txt
 ```
 
-## Configure
+### 2. Run the Streamlit App
+```bash
+streamlit run app.py
+```
+
+The app will open in your browser at `http://localhost:8501`
+
+---
+
+## 📊 Application Features
+
+### 🏠 **Home Page**
+- Project overview and navigation
+- Quick metrics dashboard
+- Feature highlights
+
+### 📤 **Data Upload & Preprocessing**
+- Upload your own CSV or use sample data
+- Automated data cleaning and preprocessing
+- Feature engineering (6 new features)
+- Interactive visualizations (distributions, correlations)
+
+### 🤖 **Model Training**
+- Train multiple models simultaneously
+- Real-time progress tracking
+- Model comparison with 10+ metrics
+- ROC curves and confusion matrices
+
+### 🔍 **SHAP Analysis**
+- Feature importance visualization
+- SHAP summary plots
+- Top churn drivers analysis
+- Supports both TreeExplainer and KernelExplainer
+
+### ⚠️ **Risk Segmentation**
+- Customer segmentation (High/Medium/Low risk)
+- Churn probability scoring
+- Retention strategies per segment
+- Export customer lists
+
+### 📊 **Executive Dashboard**
+- KPIs and metrics overview
+- Model performance summary
+- Risk distribution insights
+- Executive summary report
+- Export capabilities
+
+---
+
+## 📁 Project Structure
+
+```
+telecom-churn/
+├── app.py                          # Main Streamlit application
+├── pages/                          # Multi-page app structure
+│   ├── 1_📤_Data_Upload.py        # Data upload and preprocessing
+│   ├── 2_🤖_Model_Training.py     # Model training and comparison
+│   ├── 3_🔍_SHAP_Analysis.py      # SHAP explainability
+│   ├── 4_⚠️_Risk_Segmentation.py  # Customer risk segments
+│   └── 5_📊_Dashboard.py          # Executive dashboard
+├── utils/                          # Utility modules
+│   ├── session_state.py           # Session state management
+│   ├── data_utils.py              # Data preprocessing
+│   └── model_utils.py             # Model training & evaluation
+├── data/
+│   └── churndata.csv              # Sample dataset
+├── notebooks/
+│   └── telecom_churn.ipynb        # Jupyter notebook analysis
+└── src/                           # CLI pipeline (optional)
+    ├── main.py
+    ├── churn_pipeline.py
+    └── ...
+```
+
+---
+
+## 🔧 Configuration-Driven CLI Pipeline
+
+For advanced users, a config-driven CLI pipeline is also available:
+
+### Configure
 Edit [config/config.yaml](config/config.yaml):
 - data.path: path to your CSV
-- models.base_models: select the models to run (defaults mirror your clf1–clf12 + svc)
-- tuning.param_grids: ready-made grids
+- models.base_models: select models to run
+- tuning.param_grids: hyperparameter grids
 - tuning.strategy: "grid" or "random"
-- preprocessing: feature engineering and encoding options
 
-## Orchestrator – run modes (src/main.py)
+### Run Modes
 - Quick: run ALL configured models (no tuning), then pick best
 ```bash
 python src/main.py --mode quick

@@ -1,0 +1,82 @@
+# Python bytecode
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Virtual environments
+venv/
+env/
+*.env
+
+# Jupyter Notebooks checkpoints
+.ipynb_checkpoints/
+
+# CatBoost model files
+*.cbm
+
+# Data files (you can customize this based on your data file types)
+*.csv
+*.tsv
+*.xlsx
+*.h5
+*.pickle
+*.pkl
+*.json
+*.dat
+
+# Images
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.bmp
+
+# Logs and temporary files
+*.log
+*.tmp
+*.bak
+
+# IDE and editor settings
+.vscode/
+.idea/
+
+# Operating system files
+.DS_Store
+Thumbs.db
+
+
+# Ignore Python virtual environment
+.venv/
+
+# Bytecode and cache
+__pycache__/
+*.py[cod]
+
+# Jupyter
+.ipynb_checkpoints/
+
+# CatBoost models
+*.cbm
+
+# Data
+*.csv
+*.tsv
+*.xlsx
+*.pkl
+*.h5
+
+# Images
+*.png
+*.jpg
+*.jpeg
+
+# Logs
+*.log
+*.bak
+*.tmp
+
+# VSCode & OS files
+.vscode/
+.DS_Store
+
