@@ -80,3 +80,6 @@ __pycache__/
 .vscode/
 .DS_Store
 
+echo ".venv/" >> .gitignore
+
+
