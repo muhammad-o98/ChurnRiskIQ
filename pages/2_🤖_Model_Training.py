@@ -15,7 +15,7 @@ sys.path.append('..')
 
 from utils.session_state import init_session_state, save_model, save_best_model
 from utils.data_utils import get_preprocessor
-from utils.ui import apply_theme, header
+from utils.ui import apply_theme
 from utils.model_utils import (
     get_model_registry, train_model, evaluate_model, 
     compare_models, get_best_model
@@ -27,7 +27,7 @@ from models.persistence import save_model_version, log_to_mlflow
 init_session_state()
 apply_theme()
 
-header("Model Training & Evaluation", "🤖")
+st.markdown('<h1 style="color: #1E3A8A;">🤖 Model Training & Evaluation</h1>', unsafe_allow_html=True)
 
 # Check if data is available
 if not st.session_state.get('data_uploaded', False) or st.session_state.get('X_train') is None:

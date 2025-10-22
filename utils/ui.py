@@ -4,21 +4,17 @@ Shared UI styling and helpers for Streamlit pages.
 
 import streamlit as st
 
-# Minimal, modern palette
-TEXT = "#111827"     # near-black text
-ACCENT = "#2563EB"   # blue-600 for primary actions/links
-SUCCESS = "#10B981"  # emerald-500
-WARNING = "#F59E0B"  # amber-500
-DANGER = "#EF4444"   # red-500
-MUTED = "#6B7280"    # gray-500
-BG = "#FAFAFA"       # light background
-CARD_BG = "#FFFFFF"  # white cards
+PRIMARY = "#1E3A8A"  # Indigo-900
+ACCENT = "#2563EB"   # Blue-600
+SUCCESS = "#10B981"  # Emerald-500
+WARNING = "#F59E0B"  # Amber-500
+DANGER = "#EF4444"   # Red-500
+MUTED = "#6B7280"    # Gray-500
+BG_SOFT = "#F8FAFC"  # Slate-50
 
 
 def apply_theme():
-    """Inject a clean, modern theme with black text and light backgrounds.
-    Call near top of each page.
-    """
+    """Inject modern CSS theme (fonts, colors, components). Call near top of each page."""
     st.markdown(
         f"""
         <style>
@@ -26,56 +22,50 @@ def apply_theme():
             @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
             html, body, [class*="css"]  {{
                 font-family: 'Inter', system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, 'Apple Color Emoji', 'Segoe UI Emoji';
-                color: {TEXT};
-                background: {BG};
             }}
-            .stApp {{ background: {BG}; }}
             .main-header {{
-                font-size: 2.2rem; font-weight: 700; color: {TEXT}; margin: 0.5rem 0 1rem 0;
+                font-size: 2.2rem; font-weight: 700; color: {PRIMARY}; margin: 0.5rem 0 1rem 0;
             }}
             .sub-header {{
-                font-size: 1.2rem; font-weight: 600; color: {TEXT}; margin: 1rem 0 0.5rem 0;
+                font-size: 1.2rem; font-weight: 600; color: {ACCENT}; margin: 1rem 0 0.5rem 0;
             }}
             .metric-card {{
-                background: {CARD_BG}; border: 1px solid #E5E7EB;
-                padding: 1rem; border-radius: 10px; color: {TEXT}; box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                padding: 1rem; border-radius: 12px; color: white; box-shadow: 0 2px 10px rgba(0,0,0,0.08);
             }}
             .info-box {{
-                background-color: #EEF2FF; border-left: 4px solid {ACCENT}; padding: 0.8rem 1rem; border-radius: 10px; color: {TEXT};
+                background-color: #EFF6FF; border-left: 4px solid #3B82F6; padding: 0.8rem 1rem; border-radius: 10px;
             }}
             .warning-box {{
-                background-color: #FFF7ED; border-left: 4px solid {WARNING}; padding: 0.8rem 1rem; border-radius: 10px; color: {TEXT};
+                background-color: #FEF3C7; border-left: 4px solid {WARNING}; padding: 0.8rem 1rem; border-radius: 10px;
             }}
             .success-box {{
-                background-color: #ECFDF5; border-left: 4px solid {SUCCESS}; padding: 0.8rem 1rem; border-radius: 10px; color: {TEXT};
+                background-color: #D1FAE5; border-left: 4px solid {SUCCESS}; padding: 0.8rem 1rem; border-radius: 10px;
             }}
             .danger-box {{
-                background-color: #FEF2F2; border-left: 4px solid {DANGER}; padding: 0.8rem 1rem; border-radius: 10px; color: {TEXT};
+                background-color: #FEE2E2; border-left: 4px solid {DANGER}; padding: 0.8rem 1rem; border-radius: 10px;
             }}
             .card {{
-                background: {CARD_BG}; border: 1px solid #E5E7EB; border-radius: 10px; padding: 1rem; box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+                background: white; border: 1px solid #E5E7EB; border-radius: 12px; padding: 1rem; box-shadow: 0 1px 4px rgba(0,0,0,0.04);
             }}
             .muted {{ color: {MUTED}; }}
 
-            /* Sidebar: light */
+            /* Sidebar gradient */
             div[data-testid="stSidebar"] {{
-                background: {CARD_BG};
-                border-right: 1px solid #E5E7EB;
+                background: linear-gradient(180deg, {PRIMARY} 0%, #3B82F6 100%);
             }}
-            div[data-testid="stSidebar"] * {{ color: {TEXT} !important; }}
+            div[data-testid="stSidebar"] * {{ color: white !important; }}
 
             /* Buttons */
             .stButton>button {{
-                background: {ACCENT};
-                color: white; border: none; border-radius: 8px; padding: 0.5rem 1.0rem; font-weight: 600;
-                transition: transform 0.12s ease, box-shadow 0.12s ease; box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                color: white; border: none; border-radius: 10px; padding: 0.5rem 1.2rem; font-weight: 600;
+                transition: transform 0.15s ease, box-shadow 0.15s ease;
             }}
             .stButton>button:hover {{
                 transform: translateY(-1px);
-                box-shadow: 0 4px 10px rgba(0,0,0,0.15);
-                filter: brightness(0.95);
+                box-shadow: 0 6px 16px rgba(0,0,0,0.12);
             }}
-            .stButton>button:active {{ transform: translateY(0); }}
         </style>
         """,
         unsafe_allow_html=True,

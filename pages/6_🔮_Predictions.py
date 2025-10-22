@@ -12,13 +12,13 @@ from utils.data_utils import preprocess_data, engineer_features
 from utils.validators import CustomerFeatures
 from analysis.shap_analyzer import get_tree_explainer, compute_shap_values, to_dataframe, top_contributors_for_row
 from analysis.risk_segmentation import recommended_interventions
-from utils.ui import apply_theme, header
+from utils.ui import apply_theme
 
 st.set_page_config(page_title="Predictions", page_icon="🔮", layout="wide")
 init_session_state()
 apply_theme()
 
-header("Predictions", "🔮")
+st.markdown('<h1 style="color: #1E3A8A;">🔮 Predictions</h1>', unsafe_allow_html=True)
 
 if st.session_state.get('best_model') is None:
     st.warning("⚠️ Train or load a model first.")

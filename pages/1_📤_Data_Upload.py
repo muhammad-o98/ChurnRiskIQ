@@ -15,13 +15,13 @@ sys.path.append('..')
 
 from utils.session_state import init_session_state, save_data
 from utils.data_utils import preprocess_data, engineer_features, split_data, load_sample_dataset
-from utils.ui import apply_theme, header
+from utils.ui import apply_theme
 
 # Initialize session state
 init_session_state()
 apply_theme()
 
-header("Data Upload & Preprocessing", "📤")
+st.markdown('<h1 style="color: #1E3A8A;">📤 Data Upload & Preprocessing</h1>', unsafe_allow_html=True)
 
 # Instructions
 st.markdown("""

@@ -12,12 +12,12 @@ sys.path.append('..')
 st.set_page_config(page_title="Dashboard", page_icon="📊", layout="wide")
 
 from utils.session_state import init_session_state, has_data
-from utils.ui import apply_theme, header
+from utils.ui import apply_theme
 
 init_session_state()
 apply_theme()
 
-header("Executive Dashboard", "📊")
+st.markdown('<h1 style="color: #1E3A8A;">📊 Executive Dashboard</h1>', unsafe_allow_html=True)
 
 # Check prerequisites (robust to older/newer keys)
 if not has_data():
