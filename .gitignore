@@ -83,3 +83,4 @@ __pycache__/
 echo ".venv/" >> .gitignore
 
 
+artifacts/models/rf_basic/model.joblib
