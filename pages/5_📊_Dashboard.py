@@ -220,6 +220,30 @@ if shap_values is not None:
     fig.update_layout(yaxis={'categoryorder': 'total ascending'})
     st.plotly_chart(fig, width="stretch")
 
+# Monitoring & Confidence Distribution
+st.markdown("---")
+st.markdown("## 🧭 Monitoring")
+
+# Performance alert
+perf_threshold = float(st.session_state.get('prefs', {}).get('perf_threshold', 0.65))
+comp = st.session_state.get('comparison_df')
+if comp is not None and not comp.empty:
+    top_pr = float(comp.sort_values('PR AUC', ascending=False).iloc[0]['PR AUC'])
+    if top_pr < perf_threshold:
+        st.warning(f"⚠️ Model PR-AUC {top_pr:.3f} below threshold {perf_threshold:.3f}. Consider retraining.")
+    else:
+        st.success(f"✅ Model PR-AUC {top_pr:.3f} meets threshold {perf_threshold:.3f}.")
+
+# Confidence distribution
+bm = st.session_state.get('best_model')
+if bm is not None and st.session_state.get('X_test') is not None:
+    try:
+        probs = bm.predict_proba(st.session_state.X_test)[:, 1]
+        figc = px.histogram(probs, nbins=30, title='Prediction Confidence Distribution', color_discrete_sequence=['#2563EB'])
+        st.plotly_chart(figc, use_container_width=True)
+    except Exception:
+        pass
+
 # Executive Summary
 st.markdown("---")
 st.markdown("## 📝 Executive Summary")

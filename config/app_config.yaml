@@ -1,0 +1,17 @@
+theme:
+  primaryColor: "#1E3A8A"
+  backgroundColor: "#FFFFFF"
+  secondaryBackgroundColor: "#F0F2F6"
+streamlit:
+  max_upload_size: 200
+  max_message_size: 200
+model_settings:
+  cache_ttl: 3600
+  max_shap_samples: 1000
+  batch_size: 100
+  enable_async: true
+monitoring:
+  drift_threshold: 0.1
+  performance_threshold: 0.65
+  alert_emails:
+    - "admin@company.com"

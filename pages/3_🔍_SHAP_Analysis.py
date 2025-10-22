@@ -12,6 +12,7 @@ import matplotlib.pyplot as plt
 import shap
 import plotly.express as px
 from sklearn.cluster import KMeans
+from analysis.shap_analyzer import plotly_importance, plotly_dependence
 import sys
 sys.path.append('..')
 
@@ -37,6 +38,14 @@ if st.session_state.shap_values is None:
             preprocessor = st.session_state.best_model.named_steps['preprocessor']
             classifier = st.session_state.best_model.named_steps['classifier']
             X_test_transformed = preprocessor.transform(st.session_state.X_test)
+            # Sample for web performance
+            max_samples = int(st.session_state.get('prefs', {}).get('max_shap_samples', 1000))
+            if X_test_transformed.shape[0] > max_samples:
+                import numpy as _np
+                idx = _np.random.RandomState(42).choice(_np.arange(X_test_transformed.shape[0]), size=max_samples, replace=False)
+                X_shap = X_test_transformed[idx]
+            else:
+                X_shap = X_test_transformed
             
             # Get feature names
             feature_names = get_feature_names_from_preprocessor(preprocessor, st.session_state.X_train)
@@ -45,19 +54,21 @@ if st.session_state.shap_values is None:
             # Compute SHAP
             try:
                 explainer = shap.TreeExplainer(classifier)
-                shap_values = explainer.shap_values(X_test_transformed)
+                shap_values = explainer.shap_values(X_shap)
                 st.session_state.shap_explainer = explainer
                 st.session_state.shap_values = shap_values
+                st.session_state.X_shap_display = X_shap
                 st.session_state.shap_computed = True
                 st.success("✅ SHAP values computed!")
                 st.rerun()
             except Exception as e:
                 st.error(f"TreeExplainer failed, using KernelExplainer (slower): {str(e)}")
-                background = shap.sample(X_test_transformed, min(50, X_test_transformed.shape[0]))
+                background = shap.sample(X_shap, min(50, X_shap.shape[0]))
                 explainer = shap.KernelExplainer(lambda x: classifier.predict_proba(x)[:, 1], background)
-                shap_values = explainer.shap_values(X_test_transformed, nsamples=100)
+                shap_values = explainer.shap_values(X_shap, nsamples=100)
                 st.session_state.shap_explainer = explainer
                 st.session_state.shap_values = shap_values
+                st.session_state.X_shap_display = X_shap
                 st.session_state.shap_computed = True
                 st.success("✅ SHAP values computed!")
                 st.rerun()
@@ -66,9 +77,11 @@ if st.session_state.shap_values is None:
 if st.session_state.shap_computed:
     shap_values = st.session_state.shap_values
     feature_names = st.session_state.shap_feature_names
-    X_test_transformed = st.session_state.best_model.named_steps['preprocessor'].transform(st.session_state.X_test)
+    X_disp = st.session_state.get('X_shap_display')
+    if X_disp is None:
+        X_disp = st.session_state.best_model.named_steps['preprocessor'].transform(st.session_state.X_test)
     # Build display DataFrames
-    X_df = pd.DataFrame(X_test_transformed, columns=feature_names)
+    X_df = pd.DataFrame(X_disp, columns=feature_names)
     
     # Handle multi-output
     if isinstance(shap_values, list):
@@ -90,14 +103,13 @@ if st.session_state.shap_computed:
     with tab1:
         st.markdown("### SHAP Summary Plot")
         fig, ax = plt.subplots(figsize=(10, 8))
-        shap.summary_plot(sv, X_test_transformed, feature_names=feature_names, show=False, max_display=20)
+        shap.summary_plot(sv, X_df.values, feature_names=feature_names, show=False, max_display=20)
         st.pyplot(fig)
     
     with tab2:
-        st.markdown("### SHAP Feature Importance")
-        fig, ax = plt.subplots(figsize=(10, 8))
-        shap.summary_plot(sv, X_test_transformed, feature_names=feature_names, plot_type='bar', show=False, max_display=15)
-        st.pyplot(fig)
+        st.markdown("### SHAP Feature Importance (Interactive)")
+        fig_imp, _ = plotly_importance(sv, X_df, top_n=15)
+        st.plotly_chart(fig_imp, use_container_width=True)
     
     with tab3:
         st.markdown("### 🔍 Top 10 Churn Drivers")
@@ -213,11 +225,6 @@ if st.session_state.shap_computed:
         top = importance_df['Feature'].head(6).tolist()
         f_primary = st.selectbox("Feature", top, index=0)
         f_color = st.selectbox("Color by", top, index=1)
-        fig_dep = px.scatter(
-            x=X_df[f_primary], y=sv[:, feature_names.index(f_primary)], color=X_df[f_color],
-            labels={'x': f_primary, 'y': f'SHAP({f_primary})', 'color': f_color},
-            color_continuous_scale='Viridis', opacity=0.7
-        )
-        fig_dep.update_traces(marker=dict(line=dict(width=0)))
-        fig_dep.update_layout(height=500, title=f"Dependence: {f_primary}")
+        fig_dep = plotly_dependence(sv, X_df, f_primary, f_color)
+        fig_dep.update_layout(height=500)
         st.plotly_chart(fig_dep, use_container_width=True)

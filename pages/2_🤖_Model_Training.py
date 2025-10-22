@@ -20,6 +20,8 @@ from utils.model_utils import (
     get_model_registry, train_model, evaluate_model, 
     compare_models, get_best_model
 )
+from models.ensemble import train_advanced, AdvancedTrainConfig
+from models.persistence import save_model_version, log_to_mlflow
 
 # Initialize
 init_session_state()
@@ -61,6 +63,22 @@ with col3:
 
 st.markdown("---")
 
+# Advanced options
+with st.expander("⚙️ Advanced Training Options"):
+    colA, colB, colC = st.columns(3)
+    with colA:
+        use_smote = st.checkbox("Handle imbalance (SMOTE)", value=True)
+        smote_kind = st.selectbox("Resampler", ["SMOTE","ADASYN"], index=0)
+        calibrate = st.checkbox("Calibrate probabilities", value=True)
+    with colB:
+        ensemble_voting = st.checkbox("Use Voting Ensemble", value=True)
+        ensemble_stacking = st.checkbox("Use Stacking Ensemble", value=True)
+        cv_splits = st.slider("CV folds", 3, 10, 5)
+    with colC:
+        use_optuna = st.checkbox("Hyperparameter Tuning (Optuna)", value=False)
+        n_trials = st.slider("Optuna trials", 5, 50, 20)
+        scoring = st.selectbox("Optimize for", ["pr_auc"], index=0)
+
 # Training section
 if len(selected_models) == 0:
     st.info("👆 Please select at least one model to train.")
@@ -78,49 +96,55 @@ else:
         if st.session_state.preprocessor is None:
             st.session_state.preprocessor = get_preprocessor(st.session_state.X_train)
         
-        results = {}
-        progress_bar = st.progress(0)
-        status_text = st.empty()
-        
-        for idx, model_key in enumerate(selected_models):
-            status_text.text(f"Training {registry[model_key]['name']}...")
-            
-            # Train model
-            pipeline = train_model(
-                model_key,
-                st.session_state.preprocessor,
-                st.session_state.X_train,
-                st.session_state.y_train
-            )
-            
-            # Evaluate
-            eval_results = evaluate_model(
-                pipeline,
-                st.session_state.X_train,
-                st.session_state.y_train,
-                st.session_state.X_test,
-                st.session_state.y_test
-            )
-            
-            # Save
-            save_model(pipeline, model_key)
-            results[model_key] = eval_results
-            
-            # Update progress
-            progress_bar.progress((idx + 1) / len(selected_models))
-        
-        status_text.text("✅ Training complete!")
+        # Advanced training pipeline (ensembles, CV, calibration, optional Optuna & SMOTE)
+        cfg = AdvancedTrainConfig(
+            cv_splits=cv_splits,
+            use_smote=use_smote,
+            smote_kind=smote_kind,
+            use_optuna=use_optuna,
+            n_trials=n_trials,
+            calibrate=calibrate,
+            ensemble_voting=ensemble_voting,
+            ensemble_stacking=ensemble_stacking,
+            scoring=scoring,
+        )
+        best_pipe, results, comparison_df = train_advanced(
+            selected_models,
+            st.session_state.preprocessor,
+            st.session_state.X_train,
+            st.session_state.y_train,
+            st.session_state.X_test,
+            st.session_state.y_test,
+            cfg,
+        )
+        st.session_state.trained_models['advanced_best'] = best_pipe
         st.session_state.model_metrics = results
         st.session_state.models_trained = True
-        
-        # Find best model
-        best_model_key, best_score = get_best_model(results, 'pr_auc')
-        save_best_model(
-            st.session_state.trained_models[best_model_key],
-            registry[best_model_key]['name']
+        st.session_state.comparison_df = comparison_df.copy()
+
+        # Persist best model with metadata
+        top_row = comparison_df.iloc[0]
+        best_name = str(top_row['Model'])
+        st.session_state.best_model = best_pipe
+        st.session_state.best_model_name = best_name
+        meta = save_model_version(
+            best_pipe,
+            name=best_name,
+            metrics={
+                'accuracy': float(top_row['Accuracy']),
+                'precision': float(top_row['Precision']),
+                'recall': float(top_row['Recall']),
+                'f1': float(top_row['F1-Score']),
+                'roc_auc': float(top_row['ROC AUC']),
+                'pr_auc': float(top_row['PR AUC']),
+                'brier': float(top_row['Brier Score']),
+            },
+            params={'cv_splits': cv_splits, 'use_smote': use_smote, 'smote_kind': smote_kind, 'use_optuna': use_optuna, 'n_trials': n_trials, 'calibrate': calibrate, 'ensemble_voting': ensemble_voting, 'ensemble_stacking': ensemble_stacking},
+            notes='Advanced training run',
         )
-        
-        st.success(f"🏆 Best Model: **{registry[best_model_key]['name']}** (PR AUC: {best_score:.4f})")
+        log_to_mlflow('Churn_Models', meta.metrics, meta.params)
+
+        st.success(f"🏆 Best Model: **{best_name}** (PR AUC: {float(top_row['PR AUC']):.4f})")
         st.balloons()
 
 # Show results if models are trained
@@ -128,9 +152,12 @@ if st.session_state.models_trained and st.session_state.model_metrics is not Non
     st.markdown("---")
     st.markdown("### 📊 Model Comparison")
     
-    # Create comparison DataFrame
-    comparison_df = compare_models(st.session_state.model_metrics)
-    st.session_state.comparison_df = comparison_df.copy()
+    # Create comparison DataFrame (use advanced comparison if present)
+    if 'comparison_df' in st.session_state and st.session_state.comparison_df is not None:
+        comparison_df = st.session_state.comparison_df
+    else:
+        comparison_df = compare_models(st.session_state.model_metrics)
+        st.session_state.comparison_df = comparison_df.copy()
     
     # Format for display
     display_df = comparison_df.copy()

@@ -1,0 +1,13 @@
+# Default model configurations
+advanced:
+  cv_splits: 5
+  use_smote: true
+  smote_kind: SMOTE
+  use_optuna: false
+  n_trials: 20
+  calibrate: true
+  ensemble_voting: true
+  ensemble_stacking: true
+  scoring: pr_auc
+thresholds:
+  target_pr_auc: 0.68

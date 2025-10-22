@@ -14,6 +14,11 @@ sys.path.append('..')
 
 from utils.session_state import init_session_state
 from utils.ui import apply_theme
+from analysis.risk_segmentation import (
+    segment_by_probability,
+    summarize_segments,
+    recommended_interventions,
+)
 
 init_session_state()
 apply_theme()
@@ -25,25 +30,26 @@ if not st.session_state.get('models_trained', False) or st.session_state.get('be
     st.warning("⚠️ Please train models first!")
     st.stop()
 
-# Generate risk segments
+# Generate risk segments (percentile-based)
 if st.session_state.risk_segments is None:
     if st.button("🚀 Generate Risk Segments", type="primary"):
         with st.spinner("Segmenting customers..."):
             # Combine train and test
             X_full = pd.concat([st.session_state.X_train, st.session_state.X_test], ignore_index=True)
             y_full = pd.concat([st.session_state.y_train, st.session_state.y_test], ignore_index=True)
-            
-            # Predict
+
+            # Predict churn probabilities
             y_pred_proba = st.session_state.best_model.predict_proba(X_full)[:, 1]
-            
-            # Create segments
+
+            # Create percentile-based segments: 90/70/40 percentiles
+            segments = segment_by_probability(y_pred_proba)
             X_full['churn_probability'] = y_pred_proba
             X_full['actual_churn'] = y_full.values
-            X_full['risk_segment'] = X_full['churn_probability'].apply(
-                lambda x: 'High Risk' if x >= 0.6 else ('Medium Risk' if x >= 0.3 else 'Low Risk')
-            )
-            
+            X_full['risk_segment'] = segments
+
+            # Persist
             st.session_state.risk_segments = X_full
+            st.session_state.very_high_risk_customers = X_full[X_full['risk_segment'] == 'Very High Risk']
             st.session_state.high_risk_customers = X_full[X_full['risk_segment'] == 'High Risk']
             st.success("✅ Risk segments created!")
             st.rerun()
@@ -54,23 +60,24 @@ if st.session_state.risk_segments is not None:
     
     # Summary metrics
     st.markdown("### 📊 Risk Segment Summary")
-    
-    col1, col2, col3 = st.columns(3)
-    
-    with col1:
-        high_risk = (X_full['risk_segment'] == 'High Risk').sum()
-        high_pct = high_risk / len(X_full) * 100
-        st.metric("High Risk Customers", f"{high_risk:,}", f"{high_pct:.1f}%")
-    
-    with col2:
-        medium_risk = (X_full['risk_segment'] == 'Medium Risk').sum()
-        medium_pct = medium_risk / len(X_full) * 100
-        st.metric("Medium Risk Customers", f"{medium_risk:,}", f"{medium_pct:.1f}%")
-    
-    with col3:
-        low_risk = (X_full['risk_segment'] == 'Low Risk').sum()
-        low_pct = low_risk / len(X_full) * 100
-        st.metric("Low Risk Customers", f"{low_risk:,}", f"{low_pct:.1f}%")
+
+    seg_order = ['Very High Risk', 'High Risk', 'Medium Risk', 'Low Risk']
+    counts = X_full['risk_segment'].value_counts()
+    total = len(X_full)
+
+    c1, c2, c3, c4 = st.columns(4)
+    with c1:
+        vhr = counts.get('Very High Risk', 0)
+        st.metric("Very High Risk", f"{vhr:,}", f"{(vhr/total*100):.1f}%")
+    with c2:
+        hr = counts.get('High Risk', 0)
+        st.metric("High Risk", f"{hr:,}", f"{(hr/total*100):.1f}%")
+    with c3:
+        mr = counts.get('Medium Risk', 0)
+        st.metric("Medium Risk", f"{mr:,}", f"{(mr/total*100):.1f}%")
+    with c4:
+        lr = counts.get('Low Risk', 0)
+        st.metric("Low Risk", f"{lr:,}", f"{(lr/total*100):.1f}%")
     
     st.markdown("---")
     
@@ -87,77 +94,72 @@ if st.session_state.risk_segments is not None:
                 names='risk_segment',
                 title='Customer Distribution by Risk',
                 color='risk_segment',
-                color_discrete_map={'High Risk': '#EF4444', 'Medium Risk': '#F59E0B', 'Low Risk': '#10B981'}
+                category_orders={'risk_segment': seg_order},
+                color_discrete_map={
+                    'Very High Risk': '#991B1B',
+                    'High Risk': '#EF4444',
+                    'Medium Risk': '#F59E0B',
+                    'Low Risk': '#10B981'
+                }
             )
             st.plotly_chart(fig, width="stretch")
         
         with col2:
             # Churn rate by segment
-            churn_by_segment = X_full.groupby('risk_segment')['actual_churn'].mean() * 100
+            churn_by_segment = (X_full.groupby('risk_segment')['actual_churn'].mean() * 100).reindex(seg_order)
             fig = px.bar(
                 x=churn_by_segment.index,
                 y=churn_by_segment.values,
                 title='Actual Churn Rate by Segment',
                 labels={'x': 'Risk Segment', 'y': 'Churn Rate (%)'},
                 color=churn_by_segment.index,
-                color_discrete_map={'High Risk': '#EF4444', 'Medium Risk': '#F59E0B', 'Low Risk': '#10B981'}
+                category_orders={'x': seg_order},
+                color_discrete_map={
+                    'Very High Risk': '#991B1B',
+                    'High Risk': '#EF4444',
+                    'Medium Risk': '#F59E0B',
+                    'Low Risk': '#10B981'
+                }
             )
             st.plotly_chart(fig, width="stretch")
     
     with tab2:
-        # Detailed metrics table
-        summary = X_full.groupby('risk_segment').agg({
-            'churn_probability': ['count', 'mean'],
-            'actual_churn': ['sum', 'mean']
-        }).round(4)
-        summary.columns = ['Customer Count', 'Avg Risk Score', 'Churned', 'Churn Rate']
+        # Detailed metrics table using analyzer helper
+        summary = summarize_segments(X_full, prob_col='churn_probability', actual_col='actual_churn')
+        summary = summary.set_index('risk_segment').loc[[s for s in seg_order if s in summary.index]]
         st.dataframe(summary, width="stretch")
     
     with tab3:
         st.markdown("### 💼 Retention Strategies")
         
-        high_risk_df = st.session_state.high_risk_customers
-        
-        st.markdown(f"""
-        <div style="background-color: #FEE2E2; border-left: 4px solid #EF4444; padding: 1rem; border-radius: 5px;">
-            <h3 style="color: #1F2937;">🚨 High Risk ({len(high_risk_df):,} customers)</h3>
-            <ul style="color: #1F2937;">
-                <li>✓ Implement proactive retention campaigns</li>
-                <li>✓ Offer loyalty discounts (focus on first 12 months)</li>
-                <li>✓ Bundle services to increase stickiness</li>
-                <li>✓ Assign dedicated account managers</li>
-                <li>✓ Conduct satisfaction surveys in months 6 & 9</li>
-            </ul>
-        </div>
-        """, unsafe_allow_html=True)
-        
-        st.markdown(f"""
-        <div style="background-color: #FEF3C7; border-left: 4px solid #F59E0B; padding: 1rem; border-radius: 5px; margin-top: 1rem;">
-            <h3 style="color: #1F2937;">⚡ Medium Risk ({len(X_full[X_full['risk_segment'] == 'Medium Risk']):,} customers)</h3>
-            <ul style="color: #1F2937;">
-                <li>✓ Monitor for churn signals (service cancellations, tickets)</li>
-                <li>✓ Targeted upsell of premium services</li>
-                <li>✓ Seasonal promotions</li>
-            </ul>
-        </div>
-        """, unsafe_allow_html=True)
-        
-        st.markdown(f"""
-        <div style="background-color: #D1FAE5; border-left: 4px solid #10B981; padding: 1rem; border-radius: 5px; margin-top: 1rem;">
-            <h3 style="color: #1F2937;">✅ Low Risk ({len(X_full[X_full['risk_segment'] == 'Low Risk']):,} customers)</h3>
-            <ul style="color: #1F2937;">
-                <li>✓ Focus on VIP/loyalty programs</li>
-                <li>✓ Annual satisfaction check-ins</li>
-                <li>✓ Referral programs</li>
-            </ul>
-        </div>
-        """, unsafe_allow_html=True)
+        # Dynamic retention strategies per segment
+        seg_counts = X_full['risk_segment'].value_counts()
+        for seg, color, bg in [
+            ('Very High Risk', '#991B1B', '#FEE2E2'),
+            ('High Risk', '#EF4444', '#FECACA'),
+            ('Medium Risk', '#92400E', '#FEF3C7'),
+            ('Low Risk', '#065F46', '#D1FAE5'),
+        ]:
+            if seg in seg_counts:
+                strat = recommended_interventions(seg)
+                st.markdown(f"""
+                <div style="background-color: {bg}; border-left: 4px solid {color}; padding: 1rem; border-radius: 5px; margin-top: 1rem;">
+                    <h3 style="color: #1F2937;">{seg} ({seg_counts[seg]:,} customers)</h3>
+                    <ul style="color: #1F2937;">
+                        <li>✓ Priority: <strong>{strat.get('priority','')}</strong></li>
+                        <li>✓ Offer: <strong>{strat.get('discount','')}</strong></li>
+                        <li>✓ Contact: <strong>{strat.get('contact','')}</strong></li>
+                    </ul>
+                </div>
+                """, unsafe_allow_html=True)
     
     # Detailed High-Risk Analysis
     st.markdown("---")
     st.markdown("## 🎯 Detailed High-Risk Analysis")
-    
-    high_risk_df = X_full[X_full['risk_segment'] == 'High Risk']
+
+    # Prefer 'Very High Risk' if available, else fall back to 'High Risk'
+    target_segment = 'Very High Risk' if (X_full['risk_segment'] == 'Very High Risk').any() else 'High Risk'
+    high_risk_df = X_full[X_full['risk_segment'] == target_segment]
     
     # High-risk metrics
     col1, col2, col3, col4 = st.columns(4)
@@ -187,7 +189,12 @@ if st.session_state.risk_segments is not None:
     with col1:
         # Tenure distribution by risk
         fig = go.Figure()
-        for segment, color in [('Low Risk', '#10B981'), ('Medium Risk', '#F59E0B'), ('High Risk', '#EF4444')]:
+        for segment, color in [
+            ('Low Risk', '#10B981'),
+            ('Medium Risk', '#F59E0B'),
+            ('High Risk', '#EF4444'),
+            ('Very High Risk', '#991B1B'),
+        ]:
             segment_data = X_full[X_full['risk_segment'] == segment]['tenure']
             fig.add_trace(go.Box(
                 y=segment_data,
@@ -206,7 +213,12 @@ if st.session_state.risk_segments is not None:
     with col2:
         # Monthly charges by risk
         fig = go.Figure()
-        for segment, color in [('Low Risk', '#10B981'), ('Medium Risk', '#F59E0B'), ('High Risk', '#EF4444')]:
+        for segment, color in [
+            ('Low Risk', '#10B981'),
+            ('Medium Risk', '#F59E0B'),
+            ('High Risk', '#EF4444'),
+            ('Very High Risk', '#991B1B'),
+        ]:
             segment_data = X_full[X_full['risk_segment'] == segment]['MonthlyCharges']
             fig.add_trace(go.Violin(
                 y=segment_data,
@@ -268,7 +280,7 @@ if st.session_state.risk_segments is not None:
     st.markdown("### 📋 Risk Segment Summary Table")
     
     risk_summary_data = []
-    for segment in ['High Risk', 'Medium Risk', 'Low Risk']:
+    for segment in ['Very High Risk', 'High Risk', 'Medium Risk', 'Low Risk']:
         seg_df = X_full[X_full['risk_segment'] == segment]
         risk_summary_data.append({
             'Risk Segment': segment,
@@ -297,7 +309,7 @@ if st.session_state.risk_segments is not None:
     total_customers = len(X_full)
     high_risk_count = len(high_risk_df)
     actual_churn_count = X_full['actual_churn'].sum()
-    high_risk_actual_churn = X_full[(X_full['risk_segment'] == 'High Risk') & (X_full['actual_churn'] == 1)].shape[0]
+    high_risk_actual_churn = X_full[(X_full['risk_segment'] == target_segment) & (X_full['actual_churn'] == 1)].shape[0]
     
     st.info(f"""
     📊 **Key Statistics:**  
@@ -311,11 +323,17 @@ if st.session_state.risk_segments is not None:
     st.markdown("---")
     st.markdown("### 📥 Export Customer Lists")
     
-    col1, col2, col3 = st.columns(3)
+    col1, col2, col3, col4 = st.columns(4)
     
     with col1:
-        csv = high_risk_df.to_csv(index=False).encode('utf-8')
-        st.download_button("📥 High Risk List", csv, "high_risk_customers.csv", "text/csv")
+        # Very High Risk list (if any), else High Risk
+        vhr_df = X_full[X_full['risk_segment'] == 'Very High Risk']
+        if len(vhr_df) > 0:
+            csv = vhr_df.to_csv(index=False).encode('utf-8')
+            st.download_button("📥 Very High Risk List", csv, "very_high_risk_customers.csv", "text/csv")
+        else:
+            csv = high_risk_df.to_csv(index=False).encode('utf-8')
+            st.download_button("📥 High Risk List", csv, "high_risk_customers.csv", "text/csv")
     
     with col2:
         medium_df = X_full[X_full['risk_segment'] == 'Medium Risk']
@@ -326,3 +344,8 @@ if st.session_state.risk_segments is not None:
         low_df = X_full[X_full['risk_segment'] == 'Low Risk']
         csv = low_df.to_csv(index=False).encode('utf-8')
         st.download_button("📥 Low Risk List", csv, "low_risk_customers.csv", "text/csv")
+
+    with col4:
+        hr_df = X_full[X_full['risk_segment'] == 'High Risk']
+        csv = hr_df.to_csv(index=False).encode('utf-8')
+        st.download_button("📥 High Risk List", csv, "high_risk_customers.csv", "text/csv")
